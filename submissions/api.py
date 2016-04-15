@@ -10,7 +10,7 @@ import json
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, DatabaseError
+from django.db import DatabaseError, transaction
 from dogapi import dog_stats_api
 
 from submissions.serializers import (
@@ -841,7 +841,7 @@ def set_score(submission_uuid, points_earned, points_possible,
     # a score summary and ignore the error.
     # TODO: once we're using Django 1.8, use transactions to ensure that these
     # two models are saved at the same time.
-    try:
+    with transaction.atomic():
         score_model = score.save()
         _log_score(score_model)
         if annotation_creator is not None:
@@ -861,8 +861,6 @@ def set_score(submission_uuid, points_earned, points_possible,
             course_id=submission_model.student_item.course_id,
             item_id=submission_model.student_item.item_id,
         )
-    except IntegrityError:
-        pass
 
 
 def _log_submission(submission, student_item):
